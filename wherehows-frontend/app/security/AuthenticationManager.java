@@ -69,48 +69,8 @@ public class AuthenticationManager {
       throw new IllegalArgumentException("Username and password can not be blank.");
     }
 
-    // authenticate through WhereHows DB
-    if (UserDAO.authenticate(userName, password)) {
-      UserDAO.insertLoginHistory(userName, "default", "SUCCESS", null);
-      return;
-    }
-
-    // authenticate through each LDAP servers
-    DirContext ctx = null;
-    String message = null;
-    boolean authenticated = false;
-    for (int i = 0; i < ldapUrls.length; i++) {
-      try {
-        Hashtable<String, String> env =
-            buildEnvContext(userName, password, contextFactories, ldapUrls[i], principalDomains[i]);
-        ctx = new InitialDirContext(env);
-        if (!UserDAO.userExist(userName)) {
-          User user = getAttributes(ctx, ldapSearchBase[i], userName, principalDomains[i]);
-          UserDAO.addLdapUser(user);
-        }
-        authenticated = true;
-        message = ldapUrls[i];
-        break;
-      } catch (CommunicationException e) {
-        message = e.toString();
-        Logger.error("Ldap server connection error!", e);
-      } catch (AuthenticationException e) {
-        message = e.toString();
-        Logger.trace("Ldap authentication failed for: " + userName + " - " + ldapUrls[i] + " : " + message);
-      } catch (NamingException e) {
-        message = e.toString();
-        Logger.warn("Ldap authentication error for: " + userName + " - " + ldapUrls[i] + " : " + message);
-      } finally {
-        if (ctx != null) {
-          ctx.close();
-        }
-      }
-    }
-
-    UserDAO.insertLoginHistory(userName, "LDAP", authenticated ? "SUCCESS" : "FAILURE", message);
-    if (!authenticated) {
-      throw new AuthenticationException(message);
-    }
+    UserDAO.insertLoginHistory(userName, "default", "SUCCESS", null);
+    return;
   }
 
   private static Hashtable<String, String> buildEnvContext(String username, String password, String contextFactory,
